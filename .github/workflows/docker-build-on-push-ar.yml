@@ -31,7 +31,7 @@ jobs:
 
       - id: "auth"
         name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v0.4.0'
+        uses: 'google-github-actions/auth@v2.1.7'
         with:
           workload_identity_provider: 'projects/333106337415/locations/global/workloadIdentityPools/label-studio-pool/providers/label-studio-oidc-provider'
           service_account: 'label-studio-user@label-studio-424123.iam.gserviceaccount.com'

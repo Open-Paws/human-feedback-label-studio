@@ -123,10 +123,13 @@ def custom_exception_handler(exc, context):
 
         exc_tb = tb.format_exc()
         logger.debug(exc_tb)
-        response_data['detail'] = str(exc)
-        if not settings.DEBUG_MODAL_EXCEPTIONS:
-            exc_tb = None
-        response_data['exc_info'] = exc_tb
+        # Security: Only expose exception details in debug mode to prevent information leakage
+        if settings.DEBUG_MODAL_EXCEPTIONS:
+            response_data['detail'] = str(exc)
+            response_data['exc_info'] = exc_tb
+        else:
+            response_data['detail'] = 'An internal error occurred. Please contact support if the issue persists.'
+            response_data['exc_info'] = None
         if isinstance(exc, LabelStudioXMLSyntaxErrorSentryIgnored):
             response = Response(status=status.HTTP_400_BAD_REQUEST, data=response_data)
         else:

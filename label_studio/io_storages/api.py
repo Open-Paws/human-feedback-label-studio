@@ -6,6 +6,7 @@ import os
 
 from core.permissions import all_permissions
 from core.utils.io import read_yaml
+from core.utils.security import get_safe_exception_message
 from django.conf import settings
 from drf_yasg import openapi as openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -81,7 +82,9 @@ class ExportStorageListAPI(generics.ListCreateAPIView):
         try:
             instance.validate_connection()
         except Exception as exc:
-            raise ValidationError(exc)
+            # Security: Log full error internally but return safe message to user
+            logger.error(f'Storage connection validation failed: {exc}', exc_info=True)
+            raise ValidationError(get_safe_exception_message(exc, include_type=False))
 
         storage = serializer.save()
         if settings.SYNC_ON_TARGET_STORAGE_CREATION:
@@ -172,7 +175,9 @@ class StorageValidateAPI(generics.CreateAPIView):
         try:
             instance.validate_connection()
         except Exception as exc:
-            raise ValidationError(exc)
+            # Security: Log full error internally but return safe message to user
+            logger.error(f'Storage connection validation failed: {exc}', exc_info=True)
+            raise ValidationError(get_safe_exception_message(exc, include_type=False))
         return Response()
 
 

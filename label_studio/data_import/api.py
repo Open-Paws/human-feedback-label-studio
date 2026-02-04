@@ -16,6 +16,7 @@ from core.redis import start_job_async_or_sync
 from core.utils.common import retry_database_locked, timeit
 from core.utils.exceptions import LabelStudioValidationErrorSentryIgnored
 from core.utils.params import bool_from_request, list_of_strings_from_request
+from core.utils.security import sanitize_for_logging
 from csp.decorators import csp
 from django.conf import settings
 from django.db import transaction
@@ -607,7 +608,8 @@ class UploadedFileResponse(generics.RetrieveAPIView):
         filename = kwargs['filename']
         # XXX needed, on windows os.path.join generates '\' which breaks FileUpload
         file = settings.UPLOAD_DIR + ('/' if not settings.UPLOAD_DIR.endswith('/') else '') + filename
-        logger.debug(f'Fetch uploaded file by user {request.user} => {file}')
+        # Security: Sanitize file path to prevent log injection
+        logger.debug(f'Fetch uploaded file by user {request.user} => {sanitize_for_logging(file)}')
         file_upload = FileUpload.objects.filter(file=file).last()
 
         if not file_upload.has_permission(request.user):
@@ -640,7 +642,8 @@ class DownloadStorageData(APIView):
 
         url = None
         if filepath.startswith(settings.UPLOAD_DIR):
-            logger.debug(f'Fetch uploaded file by user {request.user} => {filepath}')
+            # Security: Sanitize file path to prevent log injection
+            logger.debug(f'Fetch uploaded file by user {request.user} => {sanitize_for_logging(filepath)}')
             file_upload = FileUpload.objects.filter(file=filepath).last()
 
             if file_upload is not None and file_upload.has_permission(request.user):
@@ -677,15 +680,17 @@ class PresignAPIMixin:
             fileuri = base64.urlsafe_b64decode(fileuri.encode()).decode()
         # For backwards compatibility, try unquote if this fails
         except Exception as exc:
+            # Security: Sanitize fileuri to prevent log injection
             logger.debug(
-                f'Failed to decode base64 {fileuri} for {model_name} {instance.id}: {exc} falling back to unquote'
+                f'Failed to decode base64 {sanitize_for_logging(fileuri)} for {model_name} {instance.id}: {exc} falling back to unquote'
             )
             fileuri = unquote(fileuri)
 
         try:
             resolved = instance.resolve_storage_uri(fileuri)
         except Exception as exc:
-            logger.error(f'Failed to resolve storage uri {fileuri} for {model_name} {instance.id}: {exc}')
+            # Security: Sanitize fileuri to prevent log injection
+            logger.error(f'Failed to resolve storage uri {sanitize_for_logging(fileuri)} for {model_name} {instance.id}: {exc}')
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         if resolved is None or resolved.get('url') is None:

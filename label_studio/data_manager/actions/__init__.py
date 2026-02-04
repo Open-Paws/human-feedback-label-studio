@@ -12,6 +12,7 @@ import traceback as tb
 from importlib import import_module
 
 from core.feature_flags import flag_set
+from core.utils.security import sanitize_for_logging
 from data_manager.functions import DataManagerException
 from django.conf import settings
 from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
@@ -112,8 +113,9 @@ def perform_action(action_id, project, queryset, user, **kwargs):
     try:
         result = action['entry_point'](project, queryset, **kwargs)
     except Exception as e:
-        text = 'Error while perform action: ' + action_id + '\n' + tb.format_exc()
-        logger.error(text, extra={'sentry_skip': True})
+        # Security: Sanitize action_id to prevent log injection
+        sanitized_action_id = sanitize_for_logging(action_id)
+        logger.error(f'Error while perform action: {sanitized_action_id}', exc_info=True, extra={'sentry_skip': True})
         raise e
 
     return result

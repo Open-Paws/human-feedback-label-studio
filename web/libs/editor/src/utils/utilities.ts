@@ -57,14 +57,172 @@ export function getUrl(i: number, text: string) {
 }
 
 /**
- * Check if given string is a valid url for object data
+ * Check if an IP address is in a private/internal range (SSRF protection)
+ * Blocks: localhost, private networks, link-local, AWS metadata, and other internal addresses
+ * @param {string} hostname - Hostname or IP address to check
+ * @returns {boolean} true if the IP is private/internal and should be blocked
+ */
+export function isPrivateOrInternalIP(hostname: string): boolean {
+  // Normalize hostname to lowercase for comparison
+  const normalizedHost = hostname.toLowerCase();
+
+  // Block localhost variants
+  if (
+    normalizedHost === "localhost" ||
+    normalizedHost === "localhost." ||
+    normalizedHost.endsWith(".localhost") ||
+    normalizedHost.endsWith(".localhost.")
+  ) {
+    return true;
+  }
+
+  // Check for IPv6 localhost
+  if (normalizedHost === "[::1]" || normalizedHost === "::1") {
+    return true;
+  }
+
+  // Parse IPv4 addresses
+  const ipv4Match = normalizedHost.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4Match) {
+    const octets = ipv4Match.slice(1, 5).map(Number);
+
+    // Validate octets are in range
+    if (octets.some((o) => o > 255)) {
+      return true; // Invalid IP, block it
+    }
+
+    const [a, b, c, d] = octets;
+
+    // 127.0.0.0/8 - Loopback
+    if (a === 127) return true;
+
+    // 10.0.0.0/8 - Private Class A
+    if (a === 10) return true;
+
+    // 172.16.0.0/12 - Private Class B
+    if (a === 172 && b >= 16 && b <= 31) return true;
+
+    // 192.168.0.0/16 - Private Class C
+    if (a === 192 && b === 168) return true;
+
+    // 169.254.0.0/16 - Link-local (includes AWS metadata at 169.254.169.254)
+    if (a === 169 && b === 254) return true;
+
+    // 0.0.0.0/8 - Current network
+    if (a === 0) return true;
+
+    // 100.64.0.0/10 - Carrier-grade NAT
+    if (a === 100 && b >= 64 && b <= 127) return true;
+
+    // 192.0.0.0/24 - IETF Protocol Assignments
+    if (a === 192 && b === 0 && c === 0) return true;
+
+    // 192.0.2.0/24 - TEST-NET-1
+    if (a === 192 && b === 0 && c === 2) return true;
+
+    // 198.51.100.0/24 - TEST-NET-2
+    if (a === 198 && b === 51 && c === 100) return true;
+
+    // 203.0.113.0/24 - TEST-NET-3
+    if (a === 203 && b === 0 && c === 113) return true;
+
+    // 224.0.0.0/4 - Multicast
+    if (a >= 224 && a <= 239) return true;
+
+    // 240.0.0.0/4 - Reserved for future use
+    if (a >= 240) return true;
+  }
+
+  // Check for IPv6 private addresses (simplified check)
+  if (normalizedHost.startsWith("[") || normalizedHost.includes(":")) {
+    const ipv6 = normalizedHost.replace(/^\[|\]$/g, "").toLowerCase();
+
+    // Loopback (::1)
+    if (ipv6 === "::1" || ipv6 === "0:0:0:0:0:0:0:1") return true;
+
+    // Unspecified (::)
+    if (ipv6 === "::" || ipv6 === "0:0:0:0:0:0:0:0") return true;
+
+    // Link-local (fe80::/10)
+    if (ipv6.startsWith("fe8") || ipv6.startsWith("fe9") || ipv6.startsWith("fea") || ipv6.startsWith("feb"))
+      return true;
+
+    // Unique local (fc00::/7)
+    if (ipv6.startsWith("fc") || ipv6.startsWith("fd")) return true;
+
+    // IPv4-mapped IPv6 addresses (::ffff:x.x.x.x) - check the embedded IPv4
+    const ipv4MappedMatch = ipv6.match(/^::ffff:(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/i);
+    if (ipv4MappedMatch) {
+      const embeddedIPv4 = ipv4MappedMatch.slice(1).join(".");
+      return isPrivateOrInternalIP(embeddedIPv4);
+    }
+  }
+
+  // Block common cloud metadata hostnames
+  const blockedHostnames = [
+    "metadata.google.internal",
+    "metadata.goog",
+    "kubernetes.default.svc",
+    "kubernetes.default",
+    "kubernetes",
+  ];
+  if (blockedHostnames.includes(normalizedHost)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Validates a URL for SSRF protection
+ * @param {string} urlString - URL to validate
+ * @returns {{ isValid: boolean, error?: string }} Validation result
+ */
+export function validateUrlForSSRF(urlString: string): { isValid: boolean; error?: string } {
+  try {
+    const url = new URL(urlString);
+
+    // Only allow http and https protocols
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return { isValid: false, error: "Only HTTP and HTTPS protocols are allowed" };
+    }
+
+    // Block URLs with credentials
+    if (url.username || url.password) {
+      return { isValid: false, error: "URLs with credentials are not allowed" };
+    }
+
+    // Check if hostname is a private/internal IP
+    if (isPrivateOrInternalIP(url.hostname)) {
+      return { isValid: false, error: "Access to internal/private addresses is not allowed" };
+    }
+
+    // Block uncommon ports that might be used for internal service discovery
+    const port = url.port ? parseInt(url.port, 10) : url.protocol === "https:" ? 443 : 80;
+    const allowedPorts = [80, 443, 8080, 8443];
+    if (!allowedPorts.includes(port)) {
+      return { isValid: false, error: `Port ${port} is not allowed` };
+    }
+
+    return { isValid: true };
+  } catch (e) {
+    return { isValid: false, error: "Invalid URL format" };
+  }
+}
+
+/**
+ * Check if given string is a valid url for object data (with SSRF protection)
  * @param {string} str              - String to check
- * @param {boolean} [relative=true] - Whether relative urls are good or nood
+ * @param {boolean} [relative=true] - Whether relative urls are good or not
  */
 export function isValidObjectURL(str: string, relative = false) {
   if (typeof str !== "string") return false;
   if (relative && str.startsWith("/")) return true;
-  return /^https?:\/\//.test(str);
+  if (!/^https?:\/\//.test(str)) return false;
+
+  // Apply SSRF protection for absolute URLs
+  const validation = validateUrlForSSRF(str);
+  return validation.isValid;
 }
 
 /**

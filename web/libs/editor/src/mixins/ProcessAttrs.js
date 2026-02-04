@@ -2,6 +2,7 @@ import { flow, types } from "mobx-state-tree";
 import Papa from "papaparse";
 
 import { parseTypeAndOption, parseValue } from "../utils/data";
+import { validateUrlForSSRF } from "../utils/utilities";
 
 const resolvers = {
   // @todo comments/types
@@ -52,8 +53,13 @@ const ProcessAttrsMixin = types
         return value;
       }
 
-      // @todo checks for url
-      // @todo error handling
+      // SSRF protection: validate URL before fetching
+      const urlValidation = validateUrlForSSRF(value);
+      if (!urlValidation.isValid) {
+        console.error(`SSRF protection: ${urlValidation.error} for URL: ${value}`);
+        return value;
+      }
+
       const response = yield fetch(value);
       const text = yield response.text();
 

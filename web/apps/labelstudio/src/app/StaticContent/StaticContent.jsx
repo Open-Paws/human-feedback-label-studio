@@ -1,5 +1,6 @@
 import parseHTML from "html-react-parser";
 import React from "react";
+import sanitizeHtml from "sanitize-html";
 import { reInsertScripts } from "../../utils/scripts";
 import { AsyncPageContext } from "../AsyncPage/AsyncPage";
 
@@ -49,7 +50,7 @@ const StaticContentDrawer = React.forwardRef(
     }, [content]);
 
     if (content.setInnerHTML) {
-      props.dangerouslySetInnerHTML = { __html: content.children };
+      props.dangerouslySetInnerHTML = { __html: sanitizeHtml(content.children) };
     } else {
       props.children = content.children;
     }

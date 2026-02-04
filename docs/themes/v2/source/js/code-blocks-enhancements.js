@@ -1,6 +1,12 @@
 var iframeTimer = null;
 
-
+// Helper function to escape HTML to prevent XSS
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
   function editor_iframe(res, modal, full) {
     // generate new iframe
@@ -113,9 +119,11 @@ function insert_render_editor(config, modal, full) {
   
   const addCopyCodeButton = (codeBlock, language) => {
     var pre = codeBlock.parentElement;
+    // Escape the language to prevent XSS when inserted into HTML
+    var safeLanguage = escapeHtml(language);
     var htmlTemplate = `
-      <button class="code-block-copy-button" arial-label="Copy ${language} code">
-        ${language}
+      <button class="code-block-copy-button" arial-label="Copy ${safeLanguage} code">
+        ${safeLanguage}
         <svg viewBox="0 0 24 24" width="24" height="24" class="code-block-copy-copy-icon"><path fill="currentColor" d="M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12V1z"></path></svg>
         <svg viewBox="0 0 24 24" width="24" height="24" class="code-block-copy-check-icon"><path fill="currentColor" d="m9 20.42-6.21-6.21 2.83-2.83L9 14.77l9.88-9.89 2.83 2.83L9 20.42z"></path></svg>
       </button>`;

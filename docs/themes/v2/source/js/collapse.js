@@ -50,6 +50,12 @@ style.textContent = `
 
 document.head.appendChild(style);
 
+// Validate hash to prevent CSS selector injection (DOM-based XSS)
+function isValidHash(hash) {
+  // Only allow valid CSS ID selectors: #followed by alphanumeric, hyphens, underscores
+  return /^#[a-zA-Z][a-zA-Z0-9_-]*$/.test(hash);
+}
+
 function onDOMReady() {
   const headers = document.querySelectorAll(".content-markdown h2");
 
@@ -81,17 +87,17 @@ function onDOMReady() {
     });
   });
 
-  // Process hash links
-  if(location.hash) {
+  // Process hash links with validation to prevent XSS
+  if(location.hash && isValidHash(location.hash)) {
     const header = document.querySelector(location.hash);
-    if(header.tagName === "H2") {
+    if(header && header.tagName === "H2") {
       let sibling = header.nextElementSibling;
       let nextSibling = getNextHeaderOrSibling(header);
       while (sibling && sibling !== nextSibling) {
         openCollapse(header, sibling);
         sibling = sibling.nextElementSibling;
       }
-    } else {
+    } else if(header) {
       let previousHeader = getPreviousSibling(header, "h2")
       if(previousHeader) {
         let sibling = previousHeader.nextElementSibling;
@@ -105,13 +111,16 @@ function onDOMReady() {
   }
 
   window.addEventListener("hashchange", () => {
-    const header = document.querySelector(location.hash);
-    if (header.tagName === "H2") {
-      let sibling = header.nextElementSibling;
-      let nextSibling = getNextHeaderOrSibling(header);
-      while (sibling && sibling !== nextSibling) {
-        openCollapse(header, sibling);
-        sibling = sibling.nextElementSibling;
+    // Validate hash before using in querySelector to prevent XSS
+    if (location.hash && isValidHash(location.hash)) {
+      const header = document.querySelector(location.hash);
+      if (header && header.tagName === "H2") {
+        let sibling = header.nextElementSibling;
+        let nextSibling = getNextHeaderOrSibling(header);
+        while (sibling && sibling !== nextSibling) {
+          openCollapse(header, sibling);
+          sibling = sibling.nextElementSibling;
+        }
       }
     }
   });

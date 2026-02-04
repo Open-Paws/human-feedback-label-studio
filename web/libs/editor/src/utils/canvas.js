@@ -4,6 +4,7 @@ import Constants from "../core/Constants";
 
 import * as Colors from "./colors";
 import { FF_LSDV_4583, isFF } from "./feature-flags";
+import { htmlEscape } from "./html";
 
 /**
  * Given a single channel UInt8 image data mask with non-zero values indicating the
@@ -403,7 +404,8 @@ const labelToSVG = (() => {
     const svgText = document.createElement("text");
 
     svgText.style = "font-size: 9.5px; font-weight: bold; color: red; fill: red; font-family: Monaco";
-    svgText.innerHTML = text;
+    // Use textContent instead of innerHTML to prevent XSS
+    svgText.textContent = text;
 
     svg.appendChild(svgText);
     document.body.appendChild(svg);
@@ -434,8 +436,10 @@ const labelToSVG = (() => {
     }
 
     if (label) {
+      // Escape the label to prevent XSS in SVG
+      const escapedLabel = htmlEscape(label);
       items.push(
-        `<text x="${width}" y="11" style="font-size: 9.5px; font-weight: bold; font-family: Monaco">${label}</text>`,
+        `<text x="${width}" y="11" style="font-size: 9.5px; font-weight: bold; font-family: Monaco">${escapedLabel}</text>`,
       );
       width = width + calculateTextWidth(label) + 2;
     }

@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { generatePath, useHistory } from "react-router";
 import { NavLink } from "react-router-dom";
+import sanitizeHtml from "sanitize-html";
 import { Spinner } from "../../components";
 import { Button } from "../../components/Button/Button";
 import { modal } from "../../components/Modal/Modal";
@@ -268,7 +269,7 @@ DataManagerPage.context = ({ dmRef }) => {
     if (isLabelStream && show_instruction && expert_instruction) {
       modal({
         title: "Labeling Instructions",
-        body: <div dangerouslySetInnerHTML={{ __html: expert_instruction }} />,
+        body: <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(expert_instruction) }} />,
         style: { width: 680 },
       });
     }
@@ -298,7 +299,7 @@ DataManagerPage.context = ({ dmRef }) => {
           onClick={() => {
             modal({
               title: "Instructions",
-              body: () => <div dangerouslySetInnerHTML={{ __html: project.expert_instruction }} />,
+              body: () => <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(project.expert_instruction) }} />,
             });
           }}
         >

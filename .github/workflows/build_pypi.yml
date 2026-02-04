@@ -58,10 +58,10 @@ jobs:
       pipy-artifact-url: ${{ steps.pypi-package-details.outputs.pipy-artifact-url }}
       pipy-artifact-digests-sha256: ${{ steps.pypi-package-details.outputs.pipy-artifact-digests-sha256 }}
     steps:
-      - uses: hmarr/debug-action@v3.0.0
+      - uses: hmarr/debug-action@cd1afbd7852b7ad7b1b7a9a1b03efebd3b0a1820 # v3.0.0
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ inputs.ref }}
 
@@ -97,12 +97,12 @@ jobs:
         run: yarn version:libs
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.10'
 
       - name: Set up Poetry
-        uses: snok/install-poetry@v1
+        uses: snok/install-poetry@76e04a911780d5b312d89783f7b1cd627778900a # v1
 
       - name: Install Python dependencies
         run: poetry install --with build
@@ -145,7 +145,7 @@ jobs:
       - name: Get PyPI package details
         id: pypi-package-details
         if: inputs.upload_to_pypi
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           VERSION: ${{ inputs.version }}
         with:
@@ -173,7 +173,7 @@ jobs:
 
       - name: Attach artifacts to release
         if: inputs.release-id
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           github-token: ${{ secrets.GIT_PAT }}
           script: |
@@ -210,7 +210,7 @@ jobs:
 
       - name: Upload to artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: Dist
           path: dist/

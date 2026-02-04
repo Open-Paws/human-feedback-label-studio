@@ -29,10 +29,10 @@ jobs:
     outputs:
       image_version: ${{ steps.get_info.outputs.image_version }}
     steps:
-      - uses: hmarr/debug-action@v3.0.0
+      - uses: hmarr/debug-action@cd1afbd7852b7ad7b1b7a9a1b03efebd3b0a1820 # v3.0.0
 
       - name: Get an artifact from check suite
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         id: get_info
         with:
           github-token: ${{ secrets.GIT_PAT }}
@@ -58,12 +58,12 @@ jobs:
             core.setOutput("sha", details.sha);
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ inputs.release_tag }}
 
       - name: Check is latest tag needs to be updated
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         id: generate-tags
         with:
           github-token: ${{ secrets.GIT_PAT }}
@@ -141,7 +141,7 @@ jobs:
             core.setOutput("ubi-tags", ubiTags.join(','));
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.10'
 
@@ -170,16 +170,16 @@ jobs:
           fi
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.8.0
+        uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3.8.0
 
       - name: Login to DockerHub
-        uses: docker/login-action@v3.1.0
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to RedHat Registry
-        uses: docker/login-action@v3.1.0
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
         with:
           registry: quay.io
           username: ${{ secrets.REDHAT_REGISTRY_LOGIN }}
@@ -208,7 +208,7 @@ jobs:
           EOF
 
       - name: Build and Push Release Ubuntu Docker image
-        uses: docker/build-push-action@v6.10.0
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
         id: docker_build
         with:
           context: ${{ steps.release_dockerfile.outputs.release_dir }}
@@ -227,7 +227,7 @@ jobs:
           docker run -v ${{ github.workspace }}:/workspace:rw -u root --rm ${{ env.IMAGE_NAME }}:${{ inputs.release_tag }} cp -r /label-studio/web/dist/ /workspace/web/
 
       - name: Create Sentry release @ backend
-        uses: getsentry/action-release@v1
+        uses: getsentry/action-release@e769183448303de84c5a06aaaddf9da7be26d6c7 # v1
         continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -237,7 +237,7 @@ jobs:
           projects: opensource-v1-backend
 
       - name: Create Sentry release @ frontend
-        uses: getsentry/action-release@v1
+        uses: getsentry/action-release@e769183448303de84c5a06aaaddf9da7be26d6c7 # v1
         continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}

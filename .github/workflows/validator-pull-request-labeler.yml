@@ -26,7 +26,7 @@ jobs:
       pull-requests: write
     steps:
 
-      - uses: hmarr/debug-action@v3.0.0
+      - uses: hmarr/debug-action@cd1afbd7852b7ad7b1b7a9a1b03efebd3b0a1820 # v3.0.0
 
       - name: "Validate PR's title"
         uses: thehanimo/pr-title-checker@v1.4.2

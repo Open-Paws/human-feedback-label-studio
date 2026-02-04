@@ -23,7 +23,7 @@ jobs:
       github.event.client_payload.event_action == 'merged'
     runs-on: ubuntu-latest
     steps:
-      - uses: hmarr/debug-action@v3.0.0
+      - uses: hmarr/debug-action@cd1afbd7852b7ad7b1b7a9a1b03efebd3b0a1820 # v3.0.0
 
       - name: Details
         id: details
@@ -51,7 +51,7 @@ jobs:
           esac
 
       - name: Find or Create branch
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         id: get-branch
         env:
           RELEASE_BRANCH_PREFIX: "${{ env.RELEASE_BRANCH_PREFIX }}"
@@ -107,14 +107,14 @@ jobs:
             }
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           token: ${{ secrets.GIT_PAT }}
           fetch-depth: 0
           ref: ${{ steps.get-branch.outputs.name }}
 
       - name: Checkout Actions Hub
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           token: ${{ secrets.GIT_PAT }}
           repository: HumanSignal/actions-hub
@@ -141,7 +141,7 @@ jobs:
 
       - name: "Frontend: Checkout module"
         if: steps.details.outputs.copy_src_path
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: ${{ github.event.client_payload.repo_name }}
           path: tmp
@@ -182,7 +182,7 @@ jobs:
 
       - name: "Poetry: Set up"
         if: steps.details.outputs.poetry
-        uses: snok/install-poetry@v1
+        uses: snok/install-poetry@76e04a911780d5b312d89783f7b1cd627778900a # v1
 
       - name: "Poetry: Commit and Push"
         if: steps.details.outputs.poetry
@@ -200,14 +200,14 @@ jobs:
 # LSF Docs
 
       - name: "LSF Docs: Setup nodejs"
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         if: steps.details.outputs.build_lsf_docs
         with:
           node-version: "${{ env.NODE }}"
 
       - name: "LSF Docs: Cache node modules"
         if: steps.details.outputs.build_lsf_docs
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.npm
           key: npm-${{ env.CACHE_NAME_PREFIX }}-${{ runner.os }}-node-${{ env.NODE }}-jsdoc-to-markdown
@@ -242,7 +242,7 @@ jobs:
 
       - name: Find or Create PR
         id: get-pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           TITLE: "${{ github.event.client_payload.title }}"
           HTML_URL: "${{ github.event.client_payload.html_url }}"
@@ -314,7 +314,7 @@ jobs:
       - name: Check all submodules
         id: check-all-submodules
         if: github.event.client_payload.event_action == 'merged'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           github-token: ${{ secrets.GIT_PAT }}
           result-encoding: string
@@ -377,7 +377,7 @@ jobs:
           github.event.client_payload.event_action == 'merged' &&
           steps.check-all-submodules.outputs.result != 'true'
         id: comment-pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           github-token: ${{ secrets.GIT_PAT }}
           script: |
@@ -439,10 +439,10 @@ jobs:
       github.event.client_payload.event_action == 'closed'
     runs-on: ubuntu-latest
     steps:
-      - uses: hmarr/debug-action@v3.0.0
+      - uses: hmarr/debug-action@cd1afbd7852b7ad7b1b7a9a1b03efebd3b0a1820 # v3.0.0
 
       - name: Get PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         id: get-pr
         with:
           github-token: ${{ secrets.GIT_PAT }}
@@ -480,7 +480,7 @@ jobs:
       - name: Close PR
         if: github.event.client_payload.event_action == 'closed'
         id: close-pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           github-token: ${{ secrets.GIT_PAT }}
           script: |

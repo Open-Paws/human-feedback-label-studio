@@ -252,7 +252,8 @@ export default types
     }
 
     function setFlags(flags) {
-      const names = [
+      // Security: Whitelist of allowed flag names to prevent property injection
+      const allowedFlags = [
         "showingSettings",
         "showingDescription",
         "isLoading",
@@ -263,7 +264,11 @@ export default types
         "awaitingSuggestions",
       ];
 
-      for (const n of names) if (n in flags) self[n] = flags[n];
+      for (const n of allowedFlags) {
+        if (Object.prototype.hasOwnProperty.call(flags, n)) {
+          self[n] = flags[n];
+        }
+      }
     }
 
     /**

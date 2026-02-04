@@ -95,10 +95,20 @@ const SettingsModel = types
       if (lss) {
         const lsp = JSON.parse(lss);
 
+        // Security: Whitelist of allowed settings properties to prevent property injection
+        const allowedProperties = [
+          'enableHotkeys', 'enablePanelHotkeys', 'enableTooltips', 'enableLabelTooltips',
+          'continuousLabeling', 'selectAfterCreate', 'fullscreen', 'bottomSidePanel',
+          'sidePanelMode', 'imageFullSize', 'enableAutoSave', 'showLabels', 'showLineNumbers',
+          'showAnnotationsPanel', 'showPredictionsPanel', 'preserveSelectedTool', 'enableSmoothing',
+          'videoHopSize'
+        ];
+
         typeof lsp === "object" &&
           lsp !== null &&
           Object.keys(lsp).forEach((k) => {
-            if (k in self) self[k] = lsp[k];
+            // Security: Only allow whitelisted properties and validate they exist on self
+            if (allowedProperties.includes(k) && k in self) self[k] = lsp[k];
           });
       } else {
         const env = getEnv(self);
@@ -224,6 +234,18 @@ const SettingsModel = types
     },
 
     setProperty(name, value) {
+      // Security: Whitelist of allowed property names to prevent property injection
+      const allowedProperties = [
+        'enableHotkeys', 'enablePanelHotkeys', 'enableTooltips', 'enableLabelTooltips',
+        'continuousLabeling', 'selectAfterCreate', 'fullscreen', 'bottomSidePanel',
+        'sidePanelMode', 'imageFullSize', 'enableAutoSave', 'showLabels', 'showLineNumbers',
+        'showAnnotationsPanel', 'showPredictionsPanel', 'preserveSelectedTool', 'enableSmoothing',
+        'videoHopSize'
+      ];
+      if (!allowedProperties.includes(name)) {
+        console.warn('Attempted to set disallowed property:', name);
+        return;
+      }
       self[name] = value;
     },
   }));

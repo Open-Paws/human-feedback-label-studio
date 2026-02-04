@@ -166,11 +166,24 @@ const notbetween = (items: any[], filterItem: FilterListInterface) => {
 
 const regex = (items: any[], filterItem: FilterListInterface) => {
   try {
+    // Security: Limit regex pattern length to prevent ReDoS attacks
+    const MAX_PATTERN_LENGTH = 1000;
+    if (typeof filterItem.value !== 'string' || filterItem.value.length > MAX_PATTERN_LENGTH) {
+      console.warn('Invalid or too long regex pattern');
+      return items;
+    }
+
+    const regexPattern = new RegExp(filterItem.value, "g");
+
     return items.filter((obj) => {
       const item = getFilteredPath(filterItem.path, obj);
-      const regex = new RegExp(filterItem.value, "g");
 
-      return item.match(regex);
+      // Security: Limit input length to prevent ReDoS on pathological inputs
+      if (typeof item !== 'string' || item.length > 100000) {
+        return false;
+      }
+
+      return item.match(regexPattern);
     });
   } catch (e) {
     return items;

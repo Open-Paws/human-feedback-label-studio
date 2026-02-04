@@ -41,7 +41,18 @@ class ToolsManager {
   }
 
   get preservedTool() {
-    return window.localStorage.getItem(`selected-tool:${this.name}`);
+    // Security: Validate name before using in localStorage key to prevent injection
+    if (typeof this.name !== 'string' || !this.name) {
+      return null;
+    }
+    // Security: Sanitize the name to prevent localStorage key injection
+    const safeName = this.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+    try {
+      return window.localStorage.getItem(`selected-tool:${safeName}`);
+    } catch (e) {
+      // Handle cases where localStorage is not available (sandboxed iframe, etc.)
+      return null;
+    }
   }
 
   get obj() {
@@ -57,7 +68,10 @@ class ToolsManager {
     const key = `${prefix ?? this._prefix}#${name}`;
 
     if (isFF(FF_DEV_4081) && removeDuplicatesNamed && toolName === removeDuplicatesNamed) {
-      const findme = new RegExp(`^.*?#${name}.*$`);
+      // Security: Escape special regex characters in name to prevent regex injection
+      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Security: Use anchored regex with escaped input to prevent ReDoS and injection
+      const findme = new RegExp(`^[^#]*#${escapedName}(?:[^#]*)?$`);
 
       if (Object.keys(this.tools).some((entry) => findme.test(entry))) {
         console.log(

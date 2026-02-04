@@ -29,9 +29,11 @@ export function cutFibers(object) {
 
 export function findReactKey(node) {
   const keys = Object.keys(node);
+  // Security: Use properly anchored regex to prevent ReDoS
+  const reactPropsPattern = /^__reactProps(\$[a-zA-Z0-9]+)$/;
 
   for (const key of keys) {
-    const match = RegExp(/^__reactProps(\$[^$]+)$/).exec(key);
+    const match = reactPropsPattern.exec(key);
 
     if (match) {
       return match[1];
@@ -46,10 +48,17 @@ export function cleanDomAfterReact(nodes, reactKey) {
     // preventing processing svgs due to the problem with props,
     // props sometimes come from the global variables, so it's tricky to clean them without breaking icons itself
     if (node.tagName === "svg") return;
+
+    // Security: Pre-compile patterns and escape reactKey to prevent regex injection
+    const reactPropsOrFiberPattern = /^__react(?:Props|Fiber)/;
+    // Security: Escape special regex characters in reactKey
+    const escapedReactKey = reactKey ? reactKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+    const reactKeyPattern = escapedReactKey ? new RegExp(`${escapedReactKey}$`) : null;
+
     const reactPropKeys = Object.keys(node).filter(
       (key) =>
         key.startsWith("__react") &&
-        (!RegExp(/^(?:__reactProps|__reactFiber)/).exec(key) || RegExp(new RegExp(`\\${reactKey}$`)).exec(key)),
+        (!reactPropsOrFiberPattern.test(key) || (reactKeyPattern && reactKeyPattern.test(key))),
     );
 
     if (reactPropKeys.length) {

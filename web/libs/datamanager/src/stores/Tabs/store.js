@@ -10,12 +10,25 @@ import { TabHiddenColumns } from "./tab_hidden_columns";
 import { serializeJsonForUrl, deserializeJsonFromUrl } from "../../utils/urlJSON";
 import { isEmpty } from "../../utils/helpers";
 
+// Security: Whitelist of allowed localStorage keys to prevent key injection
+const ALLOWED_STORAGE_KEYS = ['sidebarVisible', 'sidebarEnabled'];
+
 const storeValue = (name, value) => {
+  // Security: Only allow whitelisted storage keys
+  if (!ALLOWED_STORAGE_KEYS.includes(name)) {
+    console.warn('Attempted to store disallowed key:', name);
+    return value;
+  }
   window.localStorage.setItem(name, value);
   return value;
 };
 
 const restoreValue = (name) => {
+  // Security: Only allow whitelisted storage keys
+  if (!ALLOWED_STORAGE_KEYS.includes(name)) {
+    console.warn('Attempted to restore disallowed key:', name);
+    return false;
+  }
   const value = window.localStorage.getItem(name);
 
   return value ? value === "true" : false;

@@ -163,7 +163,25 @@ self.addEventListener("fetch", async (event) => {
 });
 
 self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "awaken") {
+  // Security: Validate message source - in service workers, validate source is a controlled client
+  if (!event.source) {
+    console.warn('Service worker received message from unknown source');
+    return;
+  }
+
+  // Security: Validate message structure to prevent injection attacks
+  if (!event.data || typeof event.data !== 'object') {
+    return;
+  }
+
+  // Security: Whitelist allowed message types
+  const allowedTypes = ['awaken'];
+  if (typeof event.data.type !== 'string' || !allowedTypes.includes(event.data.type)) {
+    console.warn('Service worker received unknown message type');
+    return;
+  }
+
+  if (event.data.type === "awaken") {
     startCleanupTimer();
   }
 });

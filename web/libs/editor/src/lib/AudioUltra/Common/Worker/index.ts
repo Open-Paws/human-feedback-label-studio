@@ -42,10 +42,25 @@ export class ComputeWorker {
         });
       };
 
+      // Security: Whitelist of allowed message types to prevent injection
+      const allowedTypes = ["compute", "precompute", "store", "getStorage"];
+
       self.addEventListener("message", (e) => {
         if (!e.data) return;
 
         const { data, type, eventId } = e.data;
+
+        // Security: Validate message type is in whitelist
+        if (typeof type !== "string" || !allowedTypes.includes(type)) {
+          console.warn("Worker received unknown message type:", type);
+          return;
+        }
+
+        // Security: Validate eventId when required
+        if ((type === "compute" || type === "getStorage") && typeof eventId !== "string") {
+          console.warn("Worker received message without valid eventId");
+          return;
+        }
 
         switch (type) {
           case "compute":

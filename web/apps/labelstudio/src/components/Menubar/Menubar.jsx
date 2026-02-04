@@ -30,6 +30,7 @@ import "./MenuContent.styl";
 import "./MenuSidebar.styl";
 import { ModelsPage } from "../../pages/Organization/Models/ModelsPage";
 import { FF_DIA_835, isFF } from "../../utils/feature-flags";
+import { safeRedirect } from "../../utils/urlSecurity";
 
 export const MenubarContext = createContext();
 
@@ -75,7 +76,7 @@ const ChooseLanguage = () => {
     localStorage.removeItem("selectedLanguage");
     config.update({ language: null, languageLocalCode: null });
     setLanguageCode(null);
-    window.location.href = '/projects';
+    safeRedirect("/projects");
   };
 
   return (<Button onClick={resetLanguage}>🌎 Language: {languageCode}</Button>);

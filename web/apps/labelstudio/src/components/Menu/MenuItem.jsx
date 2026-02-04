@@ -2,6 +2,7 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "../../utils/bem";
 import { absoluteURL } from "../../utils/helpers";
+import { safeRedirect } from "../../utils/urlSecurity";
 
 export const MenuItem = ({
   children,
@@ -52,7 +53,7 @@ export const MenuItem = ({
   const finalHref = to ?? href;
 
   if (forceReload) {
-    linkAttributes.onClick = () => (location.href = to ?? href);
+    linkAttributes.onClick = () => safeRedirect(to ?? href, "/");
   }
 
   return (

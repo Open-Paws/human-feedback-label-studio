@@ -1,6 +1,7 @@
 import React from "react";
 import { cn } from "../../../utils/bem";
 import { MenuContext } from "./MenuContext";
+import { safeRedirect } from "../../../utils/urlSecurity";
 
 export const MenuItem = ({
   name,
@@ -51,7 +52,7 @@ export const MenuItem = ({
   };
 
   if (forceReload) {
-    linkAttributes.onClick = () => (window.location.href = to ?? href);
+    linkAttributes.onClick = () => safeRedirect(to ?? href, "/");
   }
 
   return (

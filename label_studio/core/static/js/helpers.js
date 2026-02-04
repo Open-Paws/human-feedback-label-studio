@@ -1,3 +1,42 @@
+// URL Security - Validates URLs before redirect to prevent open redirect vulnerabilities
+function isUrlSafeForRedirect(url) {
+  if (!url || typeof url !== 'string') { return false; }
+  var trimmedUrl = url.trim();
+  if (!trimmedUrl) { return false; }
+  // Block javascript: protocol
+  if (trimmedUrl.toLowerCase().indexOf('javascript:') === 0) { return false; }
+  // Block data: protocol
+  if (trimmedUrl.toLowerCase().indexOf('data:') === 0) { return false; }
+  // Block protocol-relative URLs (//example.com)
+  if (trimmedUrl.indexOf('//') === 0) { return false; }
+  // Allow relative paths starting with / (but not //)
+  if (trimmedUrl.indexOf('/') === 0) { return true; }
+  // Allow relative paths starting with ./ or ../
+  if (trimmedUrl.indexOf('./') === 0 || trimmedUrl.indexOf('../') === 0) { return true; }
+  // Allow query strings and hash fragments for current page
+  if (trimmedUrl.indexOf('?') === 0 || trimmedUrl.indexOf('#') === 0) { return true; }
+  // For absolute URLs, verify same origin
+  try {
+    var parsedUrl = new URL(trimmedUrl, window.location.origin);
+    return parsedUrl.origin === window.location.origin;
+  } catch (e) {
+    // If URL parsing fails, check if it looks like a relative path (no protocol)
+    if (trimmedUrl.indexOf(':') === -1) { return true; }
+    return false;
+  }
+}
+
+function safeNavigate(url, fallbackUrl) {
+  fallbackUrl = fallbackUrl || '/';
+  if (isUrlSafeForRedirect(url)) {
+    window.location = url;
+    return true;
+  }
+  console.warn('Blocked unsafe navigation to:', url);
+  window.location = fallbackUrl;
+  return false;
+}
+
 // Common
 function url_exists(url) {
   /*var http = new XMLHttpRequest();
@@ -77,15 +116,15 @@ function togglePageArg(name) {
   let url = window.location.href;
   let result = popUrlArg(name);
   if (result === url) {
-    window.location = setUrlArg(name, 'true', url)
+    safeNavigate(setUrlArg(name, 'true', url));
   } else {
-    window.location = result;
+    safeNavigate(result);
   }
 }
 
 // update arguments and reload page
 function refreshPageArg(key, value) {
-  window.location = setUrlArg(key, value);
+  safeNavigate(setUrlArg(key, value));
 }
 
 // load js module
@@ -490,7 +529,7 @@ function form_submit() {
   data.forEach((item) => {
     url = setUrlArg(item.name, item.value, url);
   });
-  window.location = url;
+  safeNavigate(url);
 }
 
 (function($){

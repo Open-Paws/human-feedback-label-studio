@@ -5,6 +5,7 @@ import { FaQuestionCircle } from "react-icons/fa";
 import { useShortcut } from "../../../sdk/hotkeys";
 import { Block, Elem } from "../../../utils/bem";
 import { FF_DEV_2536, FF_DEV_4008, FF_LOPS_86, FF_OPTIC_2, isFF } from "../../../utils/feature-flags";
+import { safeWindowOpen } from "../../../utils/urlSecurity";
 import * as CellViews from "../../CellViews";
 import { Icon } from "../../Common/Icon/Icon";
 import { ImportButton } from "../../Common/SDKButtons";
@@ -118,7 +119,7 @@ export const DataView = injector(
         if (store.SDK.type === "DE") {
           store.SDK.invoke("recordPreview", item, columns, getRoot(view).taskStore.associatedList);
         } else if (e.metaKey || e.ctrlKey) {
-          window.open(`./?task=${itemID}`, "_blank");
+          safeWindowOpen(`./?task=${itemID}`, "_blank");
         } else {
           if (isFF(FF_OPTIC_2)) store._sdk.lsf?.saveDraft();
           getRoot(view).startLabeling(item);
@@ -147,7 +148,7 @@ export const DataView = injector(
                   <Elem name="text">Check your storage settings and resync to import records</Elem>
                   <Button
                     onClick={async () => {
-                      window.open("./settings/storage");
+                      safeWindowOpen("./settings/storage");
                     }}
                   >
                     Manage Storage

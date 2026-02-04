@@ -61,6 +61,13 @@ const createMethodInjectionIntoScript = (fnName, fn) => {
 };
 
 const FN_PREFIX = "fn_";
+
+// Helper to check if a property name is safe (not a prototype pollution vector)
+const isSafeKey = (key) => {
+  const dangerousKeys = ["__proto__", "constructor", "prototype"];
+  return typeof key === "string" && !dangerousKeys.includes(key);
+};
+
 const prepareInitialParams = (value, prefix = FN_PREFIX) => {
   if (Array.isArray(value)) {
     const result = [];
@@ -74,11 +81,14 @@ const prepareInitialParams = (value, prefix = FN_PREFIX) => {
     });
     return [result, functions];
   }
-  if (typeof value === "object") {
-    const result = {};
+  if (typeof value === "object" && value !== null) {
+    // Use Object.create(null) to prevent prototype pollution
+    const result = Object.create(null);
     let functions = [];
 
     Object.keys(value).forEach((key) => {
+      // Validate key to prevent prototype pollution
+      if (!isSafeKey(key)) return;
       const param = value[key];
       const [resParam, resFns] = prepareInitialParams(param, `${prefix}_${key}`);
 
@@ -101,14 +111,24 @@ const createLabelStudioInitFunction = (params) => {
   return new Function(
     "",
     `
+// Helper to check if a property name is safe (not a prototype pollution vector)
+const isSafeKey = (key) => {
+  const dangerousKeys = ["__proto__", "constructor", "prototype"];
+  return typeof key === "string" && !dangerousKeys.includes(key);
+};
+
 function linkFunctions(value) {
  if (Array.isArray(value)) {
     return value.map(val => linkFunctions(val));
  }
- if (typeof value === "object") {
-   const result = {};
+ if (typeof value === "object" && value !== null) {
+   // Use Object.create(null) to prevent prototype pollution
+   const result = Object.create(null);
    Object.keys(value).forEach(key => {
-       result[key] = linkFunctions(value[key])
+       // Validate key to prevent prototype pollution
+       if (isSafeKey(key)) {
+         result[key] = linkFunctions(value[key])
+       }
    })
    return result;
  }
@@ -251,11 +271,15 @@ const convertToFixed = (data, fractionDigits = 2) => {
   if (Array.isArray(data)) {
     return data.map((n) => convertToFixed(n, fractionDigits));
   }
-  if (typeof data === "object") {
-    const result = {};
+  if (typeof data === "object" && data !== null) {
+    // Use Object.create(null) to prevent prototype pollution
+    const result = Object.create(null);
 
     for (const key in data) {
-      result[key] = convertToFixed(data[key], fractionDigits);
+      // Validate key and use hasOwnProperty to prevent prototype pollution
+      if (Object.prototype.hasOwnProperty.call(data, key) && isSafeKey(key)) {
+        result[key] = convertToFixed(data[key], fractionDigits);
+      }
     }
     return result;
   }
@@ -282,10 +306,13 @@ const getSizeConvertor = (width, height) =>
       if (data.length === 2) return [convert(data[0]), convert(data[1], height)];
       return data.map((n) => convert(n));
     }
-    if (typeof data === "object") {
-      const result = {};
+    if (typeof data === "object" && data !== null) {
+      // Use Object.create(null) to prevent prototype pollution
+      const result = Object.create(null);
 
       for (const key in data) {
+        // Validate key and use hasOwnProperty to prevent prototype pollution
+        if (!Object.prototype.hasOwnProperty.call(data, key) || !isSafeKey(key)) continue;
         if (key === "rotation") result[key] = data[key];
         else if (key.startsWith("height") || key === "y" || key.endsWith("Y")) result[key] = convert(data[key], height);
         else result[key] = convert(data[key]);

@@ -1,3 +1,68 @@
+// URL Security - Validates URLs before redirect to prevent open redirect vulnerabilities
+function isUrlSafeForRedirect(url) {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+
+  var trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    return false;
+  }
+
+  // Block javascript: and data: protocols
+  if (trimmedUrl.toLowerCase().indexOf('javascript:') === 0 ||
+      trimmedUrl.toLowerCase().indexOf('data:') === 0) {
+    return false;
+  }
+
+  // Block protocol-relative URLs (//example.com)
+  if (trimmedUrl.indexOf('//') === 0) {
+    return false;
+  }
+
+  // Allow relative URLs starting with /
+  if (trimmedUrl.indexOf('/') === 0 && trimmedUrl.indexOf('//') !== 0) {
+    return true;
+  }
+
+  // Allow relative URLs (./ or ../)
+  if (trimmedUrl.indexOf('./') === 0 || trimmedUrl.indexOf('../') === 0) {
+    return true;
+  }
+
+  // Allow query strings and hash fragments
+  if (trimmedUrl.indexOf('?') === 0 || trimmedUrl.indexOf('#') === 0) {
+    return true;
+  }
+
+  // For absolute URLs, check if they match current origin
+  try {
+    var parsed = new URL(trimmedUrl, window.location.origin);
+    return parsed.origin === window.location.origin;
+  } catch (e) {
+    // If URL parsing fails, only allow if no protocol-like patterns
+    if (trimmedUrl.indexOf('://') === -1 && trimmedUrl.indexOf(':') === -1) {
+      return true;
+    }
+    return false;
+  }
+}
+
+function safeNavigate(url, fallbackUrl) {
+  fallbackUrl = fallbackUrl || '/';
+  if (isUrlSafeForRedirect(url)) {
+    window.location = url;
+    return true;
+  }
+  if (fallbackUrl && isUrlSafeForRedirect(fallbackUrl)) {
+    console.warn('Blocked potentially unsafe redirect to: ' + url);
+    window.location = fallbackUrl;
+    return true;
+  }
+  console.warn('Blocked unsafe redirect to: ' + url);
+  return false;
+}
+
 // Common
 function url_exists(url) {
   /*var http = new XMLHttpRequest();
@@ -181,15 +246,24 @@ function submit_files(url, method, onSuccess) {
 }
 
 
+// Helper to check if a property name is safe (not a prototype pollution vector)
+function isSafePropertyName(name) {
+    const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+    return typeof name === 'string' && !dangerousKeys.includes(name);
+}
+
 $.fn.customSerialize = function() {
     let serialized = [];
-    let checkboxes = {};
+    // Use Object.create(null) to create a dictionary without prototype chain
+    let checkboxes = Object.create(null);
 
     this.map(function() {
         let elements = this.elements;
         for (let i = 0; i < elements.length; i++) {
             let field = elements[i];
             if (!field.name || field.disabled || field.type === 'file' || field.type === 'reset' || field.type === 'submit' || field.type === 'button') continue;
+            // Validate field.name to prevent prototype pollution
+            if (!isSafePropertyName(field.name)) continue;
             if (field.type === 'checkbox') {
                 if (!field.checked) continue;
                 if (!checkboxes[field.name]) {
@@ -204,7 +278,10 @@ $.fn.customSerialize = function() {
 
     // Add checkbox values to the serialized data
     for (let name in checkboxes) {
-        serialized.push(encodeURIComponent(name) + "=" + encodeURIComponent(checkboxes[name].join(',')));
+        // Use Object.prototype.hasOwnProperty to safely check property ownership
+        if (Object.prototype.hasOwnProperty.call(checkboxes, name)) {
+            serialized.push(encodeURIComponent(name) + "=" + encodeURIComponent(checkboxes[name].join(',')));
+        }
     }
 
     return serialized.join('&');
@@ -356,10 +433,14 @@ function collab_matrix_build(elem_id) {
     var heatmapCell = $(cur.children);
     if (value !== 'nan') {
       heatmapCell.css('background', numberToColorHsl(value));
-      heatmapCell.html((Number.parseFloat(value) * 100).toFixed(2) + '%')
+      // Use .text() instead of .html() to prevent XSS - safe since value is numeric
+      heatmapCell.text((Number.parseFloat(value) * 100).toFixed(2) + '%')
     } else {
       heatmapCell.attr('data-tooltip', "There are no intersections among annotators' jobs");
-      heatmapCell.html('<i class="icon ban"></i>');
+      // Safe static HTML - create element safely using DOM methods
+      var icon = document.createElement('i');
+      icon.className = 'icon ban';
+      heatmapCell.empty().append(icon);
     }
     cur = heatmapCell;
   })
@@ -497,8 +578,12 @@ function form_submit() {
     $.fn.serializeObject = function () {
 	"use strict";
 
-	var result = {};
+	// Use Object.create(null) to prevent prototype pollution
+	var result = Object.create(null);
 	var extend = function (i, element) {
+	    // Validate element.name to prevent prototype pollution
+	    if (!isSafePropertyName(element.name)) return;
+
 	    var node = result[element.name];
 
 	    // If node with same name exists already, need to convert it to an array as it

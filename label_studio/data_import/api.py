@@ -609,7 +609,8 @@ class UploadedFileResponse(generics.RetrieveAPIView):
         # XXX needed, on windows os.path.join generates '\' which breaks FileUpload
         file = settings.UPLOAD_DIR + ('/' if not settings.UPLOAD_DIR.endswith('/') else '') + filename
         # Security: Sanitize file path to prevent log injection
-        logger.debug(f'Fetch uploaded file by user {request.user} => {sanitize_for_logging(file)}')
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Fetch uploaded file by user %s => %s', request.user, sanitize_for_logging(file))
         file_upload = FileUpload.objects.filter(file=file).last()
 
         if not file_upload.has_permission(request.user):
@@ -643,7 +644,8 @@ class DownloadStorageData(APIView):
         url = None
         if filepath.startswith(settings.UPLOAD_DIR):
             # Security: Sanitize file path to prevent log injection
-            logger.debug(f'Fetch uploaded file by user {request.user} => {sanitize_for_logging(filepath)}')
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug('Fetch uploaded file by user %s => %s', request.user, sanitize_for_logging(filepath))
             file_upload = FileUpload.objects.filter(file=filepath).last()
 
             if file_upload is not None and file_upload.has_permission(request.user):
@@ -681,16 +683,21 @@ class PresignAPIMixin:
         # For backwards compatibility, try unquote if this fails
         except Exception as exc:
             # Security: Sanitize fileuri to prevent log injection
-            logger.debug(
-                f'Failed to decode base64 {sanitize_for_logging(fileuri)} for {model_name} {instance.id}: {exc} falling back to unquote'
-            )
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    'Failed to decode base64 %s for %s %s: %s falling back to unquote',
+                    sanitize_for_logging(fileuri), model_name, instance.id, sanitize_for_logging(str(exc))
+                )
             fileuri = unquote(fileuri)
 
         try:
             resolved = instance.resolve_storage_uri(fileuri)
         except Exception as exc:
             # Security: Sanitize fileuri to prevent log injection
-            logger.error(f'Failed to resolve storage uri {sanitize_for_logging(fileuri)} for {model_name} {instance.id}: {exc}')
+            logger.error(
+                'Failed to resolve storage uri %s for %s %s: %s',
+                sanitize_for_logging(fileuri), model_name, instance.id, sanitize_for_logging(str(exc))
+            )
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         if resolved is None or resolved.get('url') is None:

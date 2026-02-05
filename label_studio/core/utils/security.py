@@ -9,6 +9,34 @@ import re
 from typing import Any, Optional
 
 
+# Pre-compiled regex for stripping ANSI escape sequences (used in sanitize_for_logging)
+_ANSI_ESCAPE_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+# Exception types whose messages are safe to pass through to users verbatim.
+# These are Label Studio domain exceptions that carry user-facing diagnostics
+# (e.g. XML syntax problems in a labeling config) and never contain secrets.
+_SAFE_EXCEPTION_TYPES = frozenset({
+    'LabelStudioXMLSyntaxErrorSentryIgnored',
+    'LabelStudioValidationErrorSentryIgnored',
+})
+
+# Error message sub-strings that are safe to surface to end-users because they
+# describe connection / permission problems without leaking internal details.
+_SAFE_MESSAGE_PATTERNS = [
+    'Bucket not found',
+    'Access denied',
+    'Permission denied',
+    'Invalid credentials',
+    'Connection refused',
+    'timeout',
+    'not found',
+    'Access Denied',
+    'NoSuchBucket',
+    'InvalidAccessKeyId',
+    'SignatureDoesNotMatch',
+    'AuthorizationHeaderMalformed',
+]
+
 # Fields that are considered sensitive and should be masked in logs
 SENSITIVE_FIELDS = frozenset({
     'password',
@@ -83,8 +111,7 @@ def sanitize_for_logging(value: Any, max_length: int = 1000) -> str:
     str_value = str_value.replace('\r', '\\r')
 
     # Remove ANSI escape sequences that could manipulate terminal output
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    str_value = ansi_escape.sub('', str_value)
+    str_value = _ANSI_ESCAPE_RE.sub('', str_value)
 
     # Truncate if too long
     if len(str_value) > max_length:
@@ -133,6 +160,18 @@ def get_safe_exception_message(exc: Exception, include_type: bool = True) -> str
     # Check if we have a safe message for this exception type
     if exc_type in safe_messages:
         return safe_messages[exc_type]
+
+    # Allow-listed Label Studio exception types whose messages are always
+    # safe to show (e.g. XML syntax errors the user needs to fix).
+    if exc_type in _SAFE_EXCEPTION_TYPES:
+        return str(exc)
+
+    # If the message matches a known safe pattern (e.g. storage connectivity
+    # errors), pass it through so the user can diagnose the problem.
+    exc_message = str(exc)
+    for pattern in _SAFE_MESSAGE_PATTERNS:
+        if pattern.lower() in exc_message.lower():
+            return exc_message
 
     # For other exceptions, return a generic message
     if include_type:

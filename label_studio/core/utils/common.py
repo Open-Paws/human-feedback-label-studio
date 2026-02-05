@@ -47,6 +47,9 @@ from django.utils.module_loading import import_string
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.inspectors import CoreAPICompatInspector, NotHandled
 from label_studio_tools.core.utils.exceptions import LabelStudioXMLSyntaxErrorSentryIgnored
+
+from core.utils.exceptions import LabelStudioValidationErrorSentryIgnored
+from core.utils.security import sanitize_for_logging
 from pkg_resources import parse_version
 from rest_framework import status
 from rest_framework.exceptions import ErrorDetail
@@ -86,7 +89,7 @@ def custom_exception_handler(exc, context):
     :return: response with error desc
     """
     exception_id = uuid.uuid4()
-    logger.error('{} {}'.format(exception_id, exc), exc_info=True)
+    logger.error('%s %s', exception_id, sanitize_for_logging(str(exc)), exc_info=True)
 
     exc = _override_exceptions(exc)
 
@@ -123,10 +126,16 @@ def custom_exception_handler(exc, context):
 
         exc_tb = tb.format_exc()
         logger.debug(exc_tb)
-        # Security: Only expose exception details in debug mode to prevent information leakage
+        # Security: Only expose exception details in debug mode to prevent information leakage.
+        # However, certain user-facing exceptions (XML syntax errors, validation errors)
+        # must always surface their message so users can fix their input.
+        _is_user_facing = isinstance(exc, (LabelStudioXMLSyntaxErrorSentryIgnored, LabelStudioValidationErrorSentryIgnored))
         if settings.DEBUG_MODAL_EXCEPTIONS:
             response_data['detail'] = str(exc)
             response_data['exc_info'] = exc_tb
+        elif _is_user_facing:
+            response_data['detail'] = str(exc)
+            response_data['exc_info'] = None
         else:
             response_data['detail'] = 'An internal error occurred. Please contact support if the issue persists.'
             response_data['exc_info'] = None

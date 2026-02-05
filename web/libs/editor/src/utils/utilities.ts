@@ -56,6 +56,19 @@ export function getUrl(i: number, text: string) {
   return match && match.length ? match[1] : "";
 }
 
+// Static constants hoisted to module scope to avoid recreation on every call
+const BLOCKED_HOSTNAMES = [
+  "metadata.google.internal",
+  "metadata.goog",
+  "kubernetes.default.svc",
+  "kubernetes.default",
+  "kubernetes",
+];
+
+const IPV4_REGEX = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const IPV6_MAPPED_REGEX = /^::ffff:(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/i;
+const ALLOWED_PORTS = [80, 443, 8080, 8443];
+
 /**
  * Check if an IP address is in a private/internal range (SSRF protection)
  * Blocks: localhost, private networks, link-local, AWS metadata, and other internal addresses
@@ -81,10 +94,31 @@ export function isPrivateOrInternalIP(hostname: string): boolean {
     return true;
   }
 
+  // Block IP addresses in alternative formats that bypass strict dotted-quad parsing:
+  // Hex format (e.g., 0x7f000001)
+  if (/^0x[0-9a-f]+$/i.test(normalizedHost)) return true;
+
+  // DWORD/integer format (e.g., 2130706433)
+  if (/^\d+$/.test(normalizedHost)) return true;
+
+  // Shorthand IP formats (e.g., 127.1, 192.168.1)
+  if (/^\d+\.\d+$/.test(normalizedHost) || /^\d+\.\d+\.\d+$/.test(normalizedHost)) return true;
+
   // Parse IPv4 addresses
-  const ipv4Match = normalizedHost.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  const ipv4Match = normalizedHost.match(IPV4_REGEX);
   if (ipv4Match) {
-    const octets = ipv4Match.slice(1, 5).map(Number);
+    const parts = ipv4Match.slice(1, 5);
+
+    // Reject octal/hex notation in octets: each octet string must be strictly decimal
+    // (e.g., "0177" is octal for 127, "0x7f" is hex - both must be blocked)
+    for (let i = 0; i < parts.length; i++) {
+      const octet = Number(parts[i]);
+      if (octet.toString() !== parts[i]) {
+        return true; // Octal or hex notation detected, block it
+      }
+    }
+
+    const octets = parts.map(Number);
 
     // Validate octets are in range
     if (octets.some((o) => o > 255)) {
@@ -151,7 +185,7 @@ export function isPrivateOrInternalIP(hostname: string): boolean {
     if (ipv6.startsWith("fc") || ipv6.startsWith("fd")) return true;
 
     // IPv4-mapped IPv6 addresses (::ffff:x.x.x.x) - check the embedded IPv4
-    const ipv4MappedMatch = ipv6.match(/^::ffff:(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/i);
+    const ipv4MappedMatch = ipv6.match(IPV6_MAPPED_REGEX);
     if (ipv4MappedMatch) {
       const embeddedIPv4 = ipv4MappedMatch.slice(1).join(".");
       return isPrivateOrInternalIP(embeddedIPv4);
@@ -159,14 +193,7 @@ export function isPrivateOrInternalIP(hostname: string): boolean {
   }
 
   // Block common cloud metadata hostnames
-  const blockedHostnames = [
-    "metadata.google.internal",
-    "metadata.goog",
-    "kubernetes.default.svc",
-    "kubernetes.default",
-    "kubernetes",
-  ];
-  if (blockedHostnames.includes(normalizedHost)) {
+  if (BLOCKED_HOSTNAMES.includes(normalizedHost)) {
     return true;
   }
 
@@ -199,8 +226,7 @@ export function validateUrlForSSRF(urlString: string): { isValid: boolean; error
 
     // Block uncommon ports that might be used for internal service discovery
     const port = url.port ? parseInt(url.port, 10) : url.protocol === "https:" ? 443 : 80;
-    const allowedPorts = [80, 443, 8080, 8443];
-    if (!allowedPorts.includes(port)) {
+    if (!ALLOWED_PORTS.includes(port)) {
       return { isValid: false, error: `Port ${port} is not allowed` };
     }
 

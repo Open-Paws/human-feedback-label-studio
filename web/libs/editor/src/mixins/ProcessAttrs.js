@@ -56,11 +56,13 @@ const ProcessAttrsMixin = types
       // SSRF protection: validate URL before fetching
       const urlValidation = validateUrlForSSRF(value);
       if (!urlValidation.isValid) {
-        console.error(`SSRF protection: ${urlValidation.error} for URL: ${value}`);
-        return value;
+        console.error("SSRF validation failed for URL");
+        throw new Error("SSRF validation failed: URL is not allowed");
       }
 
-      const response = yield fetch(value);
+      // Use redirect: 'error' to block automatic redirect following,
+      // preventing attackers from redirecting to internal IPs after initial validation
+      const response = yield fetch(value, { redirect: "error" });
       const text = yield response.text();
 
       return resolvers[type](text, options);

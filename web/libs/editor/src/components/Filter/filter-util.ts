@@ -170,7 +170,7 @@ const regex = (items: any[], filterItem: FilterListInterface) => {
     const MAX_PATTERN_LENGTH = 1000;
     if (typeof filterItem.value !== 'string' || filterItem.value.length > MAX_PATTERN_LENGTH) {
       console.warn('Invalid or too long regex pattern');
-      return items;
+      return [];
     }
 
     const regexPattern = new RegExp(filterItem.value, "g");

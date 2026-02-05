@@ -48,7 +48,15 @@ class ToolsManager {
     // Security: Sanitize the name to prevent localStorage key injection
     const safeName = this.name.replace(/[^a-zA-Z0-9_-]/g, '_');
     try {
-      return window.localStorage.getItem(`selected-tool:${safeName}`);
+      const oldKey = `selected-tool:${this.name}`;
+      const newKey = `selected-tool:${safeName}`;
+
+      // Migrate data from old unsanitized key to new sanitized key on first access
+      if (oldKey !== newKey && window.localStorage.getItem(oldKey) !== null && window.localStorage.getItem(newKey) === null) {
+        window.localStorage.setItem(newKey, window.localStorage.getItem(oldKey));
+      }
+
+      return window.localStorage.getItem(newKey);
     } catch (e) {
       // Handle cases where localStorage is not available (sandboxed iframe, etc.)
       return null;

@@ -1,24 +1,9 @@
 import { isDefined } from "./utils";
 
-// Helper to check if a property name is safe (not a prototype pollution vector)
-const isSafeKey = (key) => {
-  const dangerousKeys = ["__proto__", "constructor", "prototype"];
-  return typeof key === "string" && !dangerousKeys.includes(key);
-};
-
 export const History = {
   getParams(urlInstance) {
     const url = urlInstance ?? new URL(window.location.href);
-    const result = {};
-
-    url.searchParams.forEach((value, key) => {
-      // Validate key to prevent prototype pollution
-      if (isSafeKey(key)) {
-        result[key] = value;
-      }
-    });
-
-    return result;
+    return Object.fromEntries(url.searchParams);
   },
 
   setParams(params = {}) {

@@ -3,10 +3,11 @@ function isUrlSafeForRedirect(url) {
   if (!url || typeof url !== 'string') { return false; }
   var trimmedUrl = url.trim();
   if (!trimmedUrl) { return false; }
-  // Block javascript: protocol
-  if (trimmedUrl.toLowerCase().indexOf('javascript:') === 0) { return false; }
-  // Block data: protocol
-  if (trimmedUrl.toLowerCase().indexOf('data:') === 0) { return false; }
+  // Block javascript:, vbscript:, and data: protocols
+  var lowerUrl = trimmedUrl.toLowerCase();
+  if (lowerUrl.indexOf('javascript:') === 0) { return false; }
+  if (lowerUrl.indexOf('vbscript:') === 0) { return false; }
+  if (lowerUrl.indexOf('data:') === 0) { return false; }
   // Block protocol-relative URLs (//example.com)
   if (trimmedUrl.indexOf('//') === 0) { return false; }
   // Allow relative paths starting with / (but not //)

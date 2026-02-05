@@ -12,6 +12,7 @@
  *
  * Unsafe URLs are:
  * - javascript: protocol URLs
+ * - vbscript: protocol URLs
  * - data: protocol URLs
  * - Protocol-relative URLs (//example.com)
  * - Absolute URLs to different origins
@@ -29,13 +30,17 @@ export const isUrlSafe = (url: string | null | undefined): boolean => {
     return false;
   }
 
-  // Block javascript: protocol
-  if (trimmedUrl.toLowerCase().startsWith("javascript:")) {
+  // Block javascript:, vbscript:, and data: protocols
+  const lowerUrl = trimmedUrl.toLowerCase();
+  if (lowerUrl.startsWith("javascript:")) {
     return false;
   }
 
-  // Block data: protocol
-  if (trimmedUrl.toLowerCase().startsWith("data:")) {
+  if (lowerUrl.startsWith("vbscript:")) {
+    return false;
+  }
+
+  if (lowerUrl.startsWith("data:")) {
     return false;
   }
 

@@ -54,18 +54,17 @@ function isUrlSafeForRedirect(url) {
 }
 
 function safeNavigate(url, fallbackUrl) {
-  fallbackUrl = fallbackUrl || '/';
+  // Validate fallback URL to prevent bypass
+  if (!fallbackUrl || !isUrlSafeForRedirect(fallbackUrl)) {
+    fallbackUrl = "/";
+  }
   if (isUrlSafeForRedirect(url)) {
     window.location = url;
     return true;
   }
-  if (fallbackUrl && isUrlSafeForRedirect(fallbackUrl)) {
-    console.warn('Blocked potentially unsafe redirect to: ' + url);
-    window.location = fallbackUrl;
-    return true;
-  }
-  console.warn('Blocked unsafe redirect to: ' + url);
-  return false;
+  console.warn('Blocked potentially unsafe redirect to: ' + url);
+  window.location = fallbackUrl;
+  return true;
 }
 
 // Common

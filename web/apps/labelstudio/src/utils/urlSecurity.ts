@@ -87,6 +87,10 @@ export const isUrlSafe = (url: string | null | undefined): boolean => {
  * @returns Whether the redirect was to the original URL (true) or fallback (false)
  */
 export const safeRedirect = (url: string, fallbackUrl: string = "/"): boolean => {
+  // Validate fallback URL to prevent bypass
+  if (!fallbackUrl || !isUrlSafe(fallbackUrl)) {
+    fallbackUrl = "/";
+  }
   if (isUrlSafe(url)) {
     window.location.href = url;
     return true;
@@ -105,6 +109,10 @@ export const safeRedirect = (url: string, fallbackUrl: string = "/"): boolean =>
  * @returns Whether navigation was to the original URL (true) or fallback (false)
  */
 export const safeNavigate = (url: string, fallbackUrl: string = "/"): boolean => {
+  // Validate fallback URL to prevent bypass
+  if (!fallbackUrl || !isUrlSafe(fallbackUrl)) {
+    fallbackUrl = "/";
+  }
   if (isUrlSafe(url)) {
     window.location.href = url;
     return true;
@@ -144,6 +152,10 @@ export const safeWindowOpen = (
  * @returns The sanitized URL
  */
 export const sanitizeUrl = (url: string, fallbackUrl: string = "#"): string => {
+  // Validate fallback URL to prevent bypass
+  if (!fallbackUrl || !isUrlSafe(fallbackUrl)) {
+    fallbackUrl = "#";
+  }
   if (isUrlSafe(url)) {
     return url;
   }

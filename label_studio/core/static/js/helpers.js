@@ -28,7 +28,10 @@ function isUrlSafeForRedirect(url) {
 }
 
 function safeNavigate(url, fallbackUrl) {
-  fallbackUrl = fallbackUrl || '/';
+  // Validate fallback URL to prevent bypass
+  if (!fallbackUrl || !isUrlSafeForRedirect(fallbackUrl)) {
+    fallbackUrl = "/";
+  }
   if (isUrlSafeForRedirect(url)) {
     window.location = url;
     return true;

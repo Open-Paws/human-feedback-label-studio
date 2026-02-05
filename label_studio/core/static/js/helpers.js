@@ -9,9 +9,11 @@ function isUrlSafeForRedirect(url) {
     return false;
   }
 
-  // Block javascript: and data: protocols
-  if (trimmedUrl.toLowerCase().indexOf('javascript:') === 0 ||
-      trimmedUrl.toLowerCase().indexOf('data:') === 0) {
+  // Block dangerous protocols (javascript:, vbscript:, data:)
+  var lowerUrl = trimmedUrl.toLowerCase();
+  if (lowerUrl.indexOf('javascript:') === 0 ||
+      lowerUrl.indexOf('vbscript:') === 0 ||
+      lowerUrl.indexOf('data:') === 0) {
     return false;
   }
 
@@ -35,16 +37,19 @@ function isUrlSafeForRedirect(url) {
     return true;
   }
 
-  // For absolute URLs, check if they match current origin
+  // For absolute URLs, allow http/https protocols (they are not XSS vectors)
   try {
     var parsed = new URL(trimmedUrl, window.location.origin);
-    return parsed.origin === window.location.origin;
+    var protocol = parsed.protocol;
+    return protocol === 'http:' || protocol === 'https:';
   } catch (e) {
-    // If URL parsing fails, only allow if no protocol-like patterns
-    if (trimmedUrl.indexOf('://') === -1 && trimmedUrl.indexOf(':') === -1) {
-      return true;
+    // If URL parsing fails, check if it starts with a dangerous scheme
+    if (/^[a-zA-Z][a-zA-Z0-9+\-.]*:/.test(trimmedUrl)) {
+      // It looks like it has a scheme; only allow http/https
+      return lowerUrl.indexOf('http:') === 0 || lowerUrl.indexOf('https:') === 0;
     }
-    return false;
+    // No scheme detected, treat as relative URL
+    return true;
   }
 }
 
@@ -254,8 +259,7 @@ function isSafePropertyName(name) {
 
 $.fn.customSerialize = function() {
     let serialized = [];
-    // Use Object.create(null) to create a dictionary without prototype chain
-    let checkboxes = Object.create(null);
+    let checkboxes = {};
 
     this.map(function() {
         let elements = this.elements;
@@ -578,8 +582,7 @@ function form_submit() {
     $.fn.serializeObject = function () {
 	"use strict";
 
-	// Use Object.create(null) to prevent prototype pollution
-	var result = Object.create(null);
+	var result = {};
 	var extend = function (i, element) {
 	    // Validate element.name to prevent prototype pollution
 	    if (!isSafePropertyName(element.name)) return;

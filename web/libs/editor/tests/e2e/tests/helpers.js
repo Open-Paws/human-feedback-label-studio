@@ -82,8 +82,7 @@ const prepareInitialParams = (value, prefix = FN_PREFIX) => {
     return [result, functions];
   }
   if (typeof value === "object" && value !== null) {
-    // Use Object.create(null) to prevent prototype pollution
-    const result = Object.create(null);
+    const result = {};
     let functions = [];
 
     Object.keys(value).forEach((key) => {
@@ -122,8 +121,7 @@ function linkFunctions(value) {
     return value.map(val => linkFunctions(val));
  }
  if (typeof value === "object" && value !== null) {
-   // Use Object.create(null) to prevent prototype pollution
-   const result = Object.create(null);
+   const result = {};
    Object.keys(value).forEach(key => {
        // Validate key to prevent prototype pollution
        if (isSafeKey(key)) {
@@ -272,11 +270,9 @@ const convertToFixed = (data, fractionDigits = 2) => {
     return data.map((n) => convertToFixed(n, fractionDigits));
   }
   if (typeof data === "object" && data !== null) {
-    // Use Object.create(null) to prevent prototype pollution
-    const result = Object.create(null);
+    const result = {};
 
     for (const key in data) {
-      // Validate key and use hasOwnProperty to prevent prototype pollution
       if (Object.prototype.hasOwnProperty.call(data, key) && isSafeKey(key)) {
         result[key] = convertToFixed(data[key], fractionDigits);
       }
@@ -307,11 +303,9 @@ const getSizeConvertor = (width, height) =>
       return data.map((n) => convert(n));
     }
     if (typeof data === "object" && data !== null) {
-      // Use Object.create(null) to prevent prototype pollution
-      const result = Object.create(null);
+      const result = {};
 
       for (const key in data) {
-        // Validate key and use hasOwnProperty to prevent prototype pollution
         if (!Object.prototype.hasOwnProperty.call(data, key) || !isSafeKey(key)) continue;
         if (key === "rotation") result[key] = data[key];
         else if (key.startsWith("height") || key === "y" || key.endsWith("Y")) result[key] = convert(data[key], height);

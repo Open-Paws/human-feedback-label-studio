@@ -9,8 +9,7 @@ const isSafeKey = (key) => {
 export const History = {
   getParams(urlInstance) {
     const url = urlInstance ?? new URL(window.location.href);
-    // Use Object.create(null) to prevent prototype pollution
-    const result = Object.create(null);
+    const result = {};
 
     url.searchParams.forEach((value, key) => {
       // Validate key to prevent prototype pollution
